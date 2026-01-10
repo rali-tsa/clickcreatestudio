@@ -6,9 +6,18 @@
 <title>Icebreaker generator</title>
 
 <style>
-  html, body { margin: 0; padding: 0; background: transparent; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  }
 
-  .wrap { width: 100%; padding: 6px 8px; box-sizing: border-box; }
+  .wrap {
+    width: 100%;
+    padding: 6px 8px;
+    box-sizing: border-box;
+  }
 
   /* theme via URL param ?theme=pink|green|white */
   :root {
@@ -24,7 +33,9 @@
   .card {
     width: min(820px, 100%);
     border-radius: 16px;
-    padding: 10px 10px 9px;
+
+    /* UPDATED: smaller padding to reduce height */
+    padding: 8px 10px 8px;
 
     background: var(--bg);
     border: 1px solid var(--border);
@@ -64,7 +75,9 @@
     font-size: 16px;
     font-weight: 650;
     line-height: 1.2;
-    padding: 6px 4px 8px;
+
+    /* UPDATED: smaller bottom padding to reduce height */
+    padding: 6px 4px 6px;
   }
 
   .controls {
@@ -165,7 +178,7 @@ document.addEventListener("DOMContentLoaded", () => {
   root.setProperty("--subtext", t.subtext);
   root.setProperty("--shadow", t.shadow);
 
-  // Prompts: reviewed for clarity + tone
+  // Prompts reviewed for clarity + tone
   const PROMPTS = {
     fun: [
       "What’s a tiny thing that instantly improves your day?",
