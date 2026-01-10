@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Focus Timer</title>
+
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  }
+
+  .wrap {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 20px;
+    box-sizing: border-box;
+  }
+
+  /* thin glass bar */
+  .bar {
+    width: min(900px, 95%);
+    height: 64px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 0 20px;
+    border-radius: 999px;
+
+    /* soft blush / white glass */
+    background: rgba(255, 245, 245, 0.28);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+
+    backdrop-filter: blur(14px) saturate(120%);
+    -webkit-backdrop-filter: blur(14px) saturate(120%);
+
+    box-shadow:
+      0 8px 24px rgba(0,0,0,0.18),
+      inset 0 1px 0 rgba(255,255,255,0.35);
+  }
+
+  .time {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: rgba(60, 60, 60, 0.9);
+  }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+  }
+
+  button {
+    border-radius: 999px;
+    padding: 8px 14px;
+
+    border: 1px solid rgba(200,200,200,0.5);
+    background: rgba(255,255,255,0.4);
+
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+
+    backdrop-filter: blur(6px);
+  }
+
+  button:hover {
+    background: rgba(255,255,255,0.55);
+  }
+</style>
+</head>
+
+<body>
+<div class="wrap">
+  <div class="bar">
+    <div class="time" id="time">50:00</div>
+    <div class="controls">
+      <button id="toggle">Start</button>
+      <button id="reset">Reset</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const qs = new URLSearchParams(location.search);
+  const minutes = parseInt(qs.get("minutes") || "50", 10);
+
+  let remaining = minutes * 60;
+  let running = false;
+  let timer = null;
+
+  const timeEl = document.getElementById("time");
+  const toggleBtn = document.getElementById("toggle");
+  const resetBtn = document.getElementById("reset");
+
+  function format(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+  }
+
+  function render() {
+    timeEl.textContent = format(remaining);
+    toggleBtn.textContent = running ? "Pause" : "Start";
+  }
+
+  toggleBtn.onclick = () => {
+    if (running) {
+      clearInterval(timer);
+      running = false;
+    } else {
+      running = true;
+      timer = setInterval(() => {
+        remaining--;
+        if (remaining <= 0) {
+          clearInterval(timer);
+          running = false;
+        }
+        render();
+      }, 1000);
+    }
+    render();
+  };
+
+  resetBtn.onclick = () => {
+    clearInterval(timer);
+    running = false;
+    remaining = minutes * 60;
+    render();
+  };
+
+  render();
+</script>
+</body>
+</html>
