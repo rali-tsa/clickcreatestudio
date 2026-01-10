@@ -205,3 +205,67 @@
       "What are you building right now, and who is it for?",
       "What’s your biggest bottleneck this week?",
       "What’s one tool or workflow you swear by?",
+      "What does a ‘successful session’ look like today?",
+      "If you could automate one thing in your business, what would it be?"
+    ],
+    deep: [
+      "What’s something you’re proud of that you don’t talk about enough?",
+      "What belief about success are you currently unlearning?",
+      "What kind of environment helps you feel most creative?",
+      "What’s a risk you’re glad you took?",
+      "What do you want more of in your life this year?"
+    ],
+    spicy: [
+      "What’s your most controversial productivity opinion?",
+      "What’s a ‘red flag’ in online business advice?",
+      "What’s something people overcomplicate that’s actually simple?",
+      "If you had to delete all social apps except one, which stays?",
+      "What’s a trend you think is overrated?"
+    ]
+  };
+
+  let mode = PROMPTS[startMode] ? startMode : "fun";
+  const tagEl = document.getElementById("tag");
+  const promptEl = document.getElementById("prompt");
+
+  function pick(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  function setPrompt() {
+    tagEl.textContent = `mode: ${mode}`;
+    promptEl.textContent = pick(PROMPTS[mode]);
+  }
+
+  document.getElementById("new").addEventListener("click", setPrompt);
+
+  document.querySelectorAll("button[data-mode]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      mode = btn.getAttribute("data-mode");
+      setPrompt();
+    });
+  });
+
+  document.getElementById("copy").addEventListener("click", async () => {
+    const text = promptEl.textContent.trim();
+    try {
+      await navigator.clipboard.writeText(text);
+      tagEl.textContent = `copied ✓  mode: ${mode}`;
+      setTimeout(() => tagEl.textContent = `mode: ${mode}`, 900);
+    } catch {
+      // fallback if clipboard blocked
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+      tagEl.textContent = `copied ✓  mode: ${mode}`;
+      setTimeout(() => tagEl.textContent = `mode: ${mode}`, 900);
+    }
+  });
+
+  setPrompt();
+</script>
+</body>
+</html>
