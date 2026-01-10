@@ -15,25 +15,36 @@
       background: transparent;
     }
 
-    /* a “glass” card that still looks good over any background */
+    /* Place UI a bit higher so it sits nicely “in the window area” */
     .wrap {
       min-height: 100vh;
-      display: grid;
-      place-items: center;
-      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-top: 6vh;
+      padding-left: 16px;
+      padding-right: 16px;
       box-sizing: border-box;
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      color: rgba(255,255,255,0.95);
     }
 
+    /* green glass card (smaller) */
     .card {
-      width: min(520px, 100%);
-      border-radius: 20px;
-      border: 1px solid rgba(255,255,255,0.18);
-      background: rgba(255,255,255,0.10);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.18);
-      padding: 18px 18px 16px;
+      width: min(360px, 90%);
+      border-radius: 18px;
+
+      background: rgba(120, 155, 135, 0.22);
+      border: 1px solid rgba(160, 200, 180, 0.35);
+
+      backdrop-filter: blur(14px) saturate(120%);
+      -webkit-backdrop-filter: blur(14px) saturate(120%);
+
+      box-shadow:
+        0 8px 30px rgba(0, 0, 0, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+
+      padding: 16px;
       box-sizing: border-box;
     }
 
@@ -42,7 +53,7 @@
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
 
     .mode {
@@ -52,26 +63,33 @@
     }
 
     button, select {
-      border: 1px solid rgba(255,255,255,0.22);
-      background: rgba(0,0,0,0.18);
-      color: inherit;
-      padding: 10px 12px;
-      border-radius: 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(180, 220, 200, 0.35);
+      background: rgba(80, 120, 100, 0.25);
+      color: rgba(255, 255, 255, 0.95);
+
+      padding: 9px 12px;
       cursor: pointer;
       font-weight: 600;
       line-height: 1;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
     }
 
     button[aria-pressed="true"] {
-      background: rgba(255,255,255,0.22);
+      background: rgba(140, 180, 160, 0.35);
     }
 
     .time {
-      font-size: 76px;
-      font-weight: 800;
-      letter-spacing: -2px;
+      font-size: 64px;
+      font-weight: 700;
+      letter-spacing: -1px;
       text-align: center;
-      margin: 8px 0 14px;
+      margin: 6px 0 10px;
+
+      color: rgba(255, 255, 255, 0.95);
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+
       user-select: none;
     }
 
@@ -80,7 +98,7 @@
       gap: 10px;
       justify-content: center;
       flex-wrap: wrap;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
 
     .meta {
@@ -102,11 +120,20 @@
       background: rgba(0,0,0,0.10);
     }
 
-    .hint {
-      margin-top: 10px;
+    .pill {
       font-size: 12px;
-      opacity: 0.8;
-      text-align: center;
+      opacity: 0.9;
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(180, 220, 200, 0.25);
+      background: rgba(80, 120, 100, 0.18);
+      white-space: nowrap;
+    }
+
+    .status {
+      display: flex;
+      justify-content: center;
+      margin-top: 10px;
     }
   </style>
 </head>
@@ -157,11 +184,14 @@
         </div>
       </div>
 
+      <div class="status">
+        <span class="pill" id="soundLabel">Sound: off</span>
+      </div>
     </div>
   </div>
 
   <script>
-    // ----- helpers -----
+    // ---------------- helpers ----------------
     const qs = new URLSearchParams(location.search);
     const clampInt = (v, min, max, fallback) => {
       const n = parseInt(v, 10);
@@ -173,11 +203,19 @@
       return String(m).padStart(2, "0") + ":" + String(r).padStart(2, "0");
     };
 
-    // ----- state -----
+    // ---------------- state ----------------
     let workM = clampInt(qs.get("minutes"), 1, 120, 25);
     let breakM = clampInt(qs.get("break"), 1, 60, 5);
+
+    // autostart: 1/0
     let autostart = (qs.get("autostart") === "1");
+
+    // sound: 1/0 toggles end-of-session beep (and optionally ambience)
     let soundOn = (qs.get("sound") === "1");
+
+    // ambience: 1/0 toggles a gentle “nature-ish” ambient bed
+    // (works only if soundOn is true)
+    let ambienceOn = (qs.get("ambience") === "1");
 
     let mode = "work";               // "work" | "break"
     let remaining = workM * 60;      // seconds
@@ -191,7 +229,7 @@
       document.body.style.background = bg;
     }
 
-    // ----- elements -----
+    // ---------------- elements ----------------
     const elTime = document.getElementById("time");
     const btnStartPause = document.getElementById("btnStartPause");
     const btnReset = document.getElementById("btnReset");
@@ -203,45 +241,145 @@
     const selBreak = document.getElementById("breakMinutes");
     const toggleAutostart = document.getElementById("toggleAutostart");
     const toggleSound = document.getElementById("toggleSound");
+    const soundLabel = document.getElementById("soundLabel");
 
     // init selects from params
     const setSelect = (sel, value) => {
-      [...sel.options].forEach(o => { if (parseInt(o.value,10) === value) sel.value = String(value); });
+      [...sel.options].forEach(o => {
+        if (parseInt(o.value,10) === value) sel.value = String(value);
+      });
     };
     setSelect(selWork, workM);
     setSelect(selBreak, breakM);
 
+    // ---------------- audio (Web Audio) ----------------
+    // We keep one AudioContext and build/teardown nodes for ambience.
+    let audioCtx = null;
+    let ambienceNodes = null;
+
+    const ensureAudioCtx = async () => {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      // Some browsers start it suspended; resume requires user gesture
+      if (audioCtx.state === "suspended") {
+        await audioCtx.resume();
+      }
+      return audioCtx;
+    };
+
+    // short “time’s up” beep
+    const beep = async () => {
+      if (!soundOn) return;
+      const ctx = await ensureAudioCtx();
+
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+
+      o.type = "sine";
+      o.frequency.value = 880;
+
+      // gentle envelope
+      const now = ctx.currentTime;
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(0.03, now + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
+
+      o.connect(g);
+      g.connect(ctx.destination);
+
+      o.start(now);
+      o.stop(now + 0.28);
+    };
+
+    // “nature-ish” ambience:
+    // - soft brown-ish noise through lowpass (wind/forest bed)
+    // - subtle slow movement (LFO)
+    const startAmbience = async () => {
+      if (!soundOn || !ambienceOn) return;
+      const ctx = await ensureAudioCtx();
+      if (ambienceNodes) return; // already running
+
+      // noise buffer (brown-ish by integrating white noise)
+      const bufferSize = 2 * ctx.sampleRate;
+      const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+
+      let last = 0.0;
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        last = (last + (0.02 * white)) / 1.02;
+        output[i] = last * 3.5;
+      }
+
+      const noise = ctx.createBufferSource();
+      noise.buffer = noiseBuffer;
+      noise.loop = true;
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.value = 900;
+      filter.Q.value = 0.7;
+
+      const gain = ctx.createGain();
+      gain.gain.value = 0.02; // very low, subtle
+
+      // LFO to gently move the filter cutoff
+      const lfo = ctx.createOscillator();
+      lfo.type = "sine";
+      lfo.frequency.value = 0.06;
+
+      const lfoGain = ctx.createGain();
+      lfoGain.gain.value = 250;
+
+      lfo.connect(lfoGain);
+      lfoGain.connect(filter.frequency);
+
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+
+      noise.start();
+      lfo.start();
+
+      ambienceNodes = { noise, filter, gain, lfo, lfoGain };
+    };
+
+    const stopAmbience = () => {
+      if (!ambienceNodes) return;
+      try { ambienceNodes.noise.stop(); } catch {}
+      try { ambienceNodes.lfo.stop(); } catch {}
+      ambienceNodes = null;
+    };
+
+    // ---------------- UI rendering ----------------
     const updatePressed = () => {
       btnWork.setAttribute("aria-pressed", mode === "work");
       btnBreak.setAttribute("aria-pressed", mode === "break");
       toggleAutostart.setAttribute("aria-pressed", autostart);
       toggleAutostart.textContent = autostart ? "On" : "Off";
+
       toggleSound.setAttribute("aria-pressed", soundOn);
       toggleSound.textContent = soundOn ? "On" : "Off";
+
+      // label communicates both beep + ambience state
+      if (!soundOn) {
+        soundLabel.textContent = "Sound: off";
+      } else if (ambienceOn) {
+        soundLabel.textContent = "Sound: on (beep + ambience)";
+      } else {
+        soundLabel.textContent = "Sound: on (beep)";
+      }
     };
 
     const render = () => {
       elTime.textContent = fmt(remaining);
       btnStartPause.textContent = running ? "Pause" : "Start";
       updatePressed();
-      // update title so it looks nice in browser tabs too
       document.title = `${mode === "work" ? "Work" : "Break"} · ${fmt(remaining)}`;
     };
 
-    const beep = () => {
-      if (!soundOn) return;
-      // WebAudio simple beep (no external assets)
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.type = "sine";
-      o.frequency.value = 880;
-      g.gain.value = 0.03;
-      o.connect(g); g.connect(ctx.destination);
-      o.start();
-      setTimeout(() => { o.stop(); ctx.close(); }, 220);
-    };
-
+    // ---------------- timer logic ----------------
     const stop = () => {
       running = false;
       if (intervalId) clearInterval(intervalId);
@@ -252,12 +390,15 @@
     const start = () => {
       if (running) return;
       running = true;
-      const tick = () => {
+
+      const tick = async () => {
         remaining -= 1;
+
         if (remaining <= 0) {
           remaining = 0;
           render();
-          beep();
+          await beep();
+
           // switch modes
           mode = (mode === "work") ? "break" : "work";
           remaining = (mode === "work" ? workM : breakM) * 60;
@@ -266,9 +407,11 @@
           else render();
           return;
         }
+
         render();
       };
-      intervalId = setInterval(tick, 1000);
+
+      intervalId = setInterval(() => { tick(); }, 1000);
       render();
     };
 
@@ -279,9 +422,11 @@
       render();
     };
 
-    // ----- events -----
+    // ---------------- events ----------------
     btnStartPause.addEventListener("click", async () => {
-      // ensure audio works when user has interacted
+      // user gesture unlocks audio
+      if (soundOn && ambienceOn) await startAmbience();
+
       if (running) stop();
       else start();
     });
@@ -292,12 +437,13 @@
       render();
     });
 
-    btnSkip.addEventListener("click", () => {
+    btnSkip.addEventListener("click", async () => {
       mode = (mode === "work") ? "break" : "work";
       remaining = (mode === "work" ? workM : breakM) * 60;
       stop();
       render();
       if (autostart) start();
+      if (soundOn && ambienceOn) await startAmbience();
     });
 
     btnWork.addEventListener("click", () => setMode("work"));
@@ -326,10 +472,24 @@
       render();
     });
 
-    toggleSound.addEventListener("click", () => {
+    // Sound button behavior:
+    // - toggles end-of-session beep on/off
+    // - ambience is controlled by URL param ambience=1 (so you can decide per room)
+    toggleSound.addEventListener("click", async () => {
       soundOn = !soundOn;
+
+      if (!soundOn) {
+        stopAmbience();
+      } else {
+        // if ambience enabled, try to start it (may require user gesture, which this click is)
+        if (ambienceOn) await startAmbience();
+      }
+
       render();
     });
+
+    // if sound is on and ambience requested, start ambience after first user gesture (start button handles it too)
+    // (We avoid autoplaying sound on page load.)
 
     // first render
     render();
