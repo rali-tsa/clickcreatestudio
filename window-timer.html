@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Focus Timer</title>
+<title>Window timer</title>
 
 <style>
   html, body {
@@ -13,28 +13,28 @@
     font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   }
 
+  /* IMPORTANT: no centering, no 100vh
+     This allows GoBrunch to position the embed freely. */
   .wrap {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 12px 20px;
+    width: 100%;
+    padding: 8px 12px;
     box-sizing: border-box;
   }
 
   /* thin glass bar */
   .bar {
-    width: min(900px, 95%);
+    width: 100%;
+    max-width: 900px;
     height: 64px;
 
     display: flex;
     align-items: center;
     justify-content: space-between;
 
-    padding: 0 20px;
+    padding: 0 18px;
     border-radius: 999px;
 
-    /* soft blush / white glass */
+    /* soft blush / white glass (change this line for different tints) */
     background: rgba(255, 245, 245, 0.28);
     border: 1px solid rgba(255, 255, 255, 0.45);
 
@@ -48,9 +48,10 @@
 
   .time {
     font-size: 28px;
-    font-weight: 600;
+    font-weight: 650;
     letter-spacing: 0.5px;
     color: rgba(60, 60, 60, 0.9);
+    user-select: none;
   }
 
   .controls {
@@ -63,31 +64,37 @@
     padding: 8px 14px;
 
     border: 1px solid rgba(200,200,200,0.5);
-    background: rgba(255,255,255,0.4);
+    background: rgba(255,255,255,0.40);
 
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 650;
     cursor: pointer;
 
     backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
   }
 
   button:hover {
     background: rgba(255,255,255,0.55);
   }
+
+  button:active {
+    transform: translateY(1px);
+  }
 </style>
 </head>
 
 <body>
-<div class="wrap">
-  <div class="bar">
-    <div class="time" id="time">50:00</div>
-    <div class="controls">
-      <button id="toggle">Start</button>
-      <button id="reset">Reset</button>
+  <div class="wrap">
+    <div class="bar" role="application" aria-label="Focus timer">
+      <div class="time" id="time" aria-live="polite">50:00</div>
+
+      <div class="controls">
+        <button id="toggle" type="button">Start</button>
+        <button id="reset" type="button">Reset</button>
+      </div>
     </div>
   </div>
-</div>
 
 <script>
   const qs = new URLSearchParams(location.search);
@@ -110,32 +117,39 @@
   function render() {
     timeEl.textContent = format(remaining);
     toggleBtn.textContent = running ? "Pause" : "Start";
+    document.title = `Window timer · ${format(remaining)}`;
   }
 
-  toggleBtn.onclick = () => {
+  function stop() {
+    if (timer) clearInterval(timer);
+    timer = null;
+    running = false;
+  }
+
+  toggleBtn.addEventListener("click", () => {
     if (running) {
-      clearInterval(timer);
-      running = false;
+      stop();
     } else {
       running = true;
       timer = setInterval(() => {
-        remaining--;
+        remaining -= 1;
+
         if (remaining <= 0) {
-          clearInterval(timer);
-          running = false;
+          remaining = 0;
+          stop();
         }
+
         render();
       }, 1000);
     }
     render();
-  };
+  });
 
-  resetBtn.onclick = () => {
-    clearInterval(timer);
-    running = false;
+  resetBtn.addEventListener("click", () => {
+    stop();
     remaining = minutes * 60;
     render();
-  };
+  });
 
   render();
 </script>
