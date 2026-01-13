@@ -17,233 +17,130 @@
     width: 100%;
     padding: 6px 8px;
     box-sizing: border-box;
+    display: flex;
+    justify-content: center;
   }
 
-  /* theme via URL param ?theme=pink|green|white */
-  :root {
-    --bg: rgba(255, 235, 240, 0.22);
-    --border: rgba(255, 255, 255, 0.42);
-    --text: rgba(55, 45, 55, 0.92);
-    --subtext: rgba(55, 45, 55, 0.70);
-    --btnbg: rgba(255, 255, 255, 0.34);
-    --btnborder: rgba(200, 200, 200, 0.40);
-    --shadow: rgba(0,0,0,0.14);
-  }
-
+  /* shrink-to-fit floating card */
   .card {
-    width: min(820px, 100%);
+    display: inline-block;
+    width: fit-content;
+    max-width: 560px;
+    min-width: 320px;
+
     border-radius: 16px;
+    padding: 8px 12px 8px;
 
-    /* UPDATED: smaller padding to reduce height */
-    padding: 8px 10px 8px;
+    background: rgba(255, 235, 240, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.42);
 
-    background: var(--bg);
-    border: 1px solid var(--border);
     backdrop-filter: blur(12px) saturate(120%);
     -webkit-backdrop-filter: blur(12px) saturate(120%);
-    box-shadow: 0 8px 20px var(--shadow), inset 0 1px 0 rgba(255,255,255,0.25);
-  }
-
-  .top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 6px;
+    box-shadow:
+      0 8px 20px rgba(0,0,0,0.14),
+      inset 0 1px 0 rgba(255,255,255,0.25);
   }
 
   .title {
-    font-weight: 750;
-    letter-spacing: 0.2px;
-    color: var(--text);
     font-size: 13px;
-    line-height: 1.1;
-  }
-
-  .tag {
-    font-size: 11px;
-    color: var(--subtext);
-    border: 1px solid rgba(255,255,255,0.30);
-    background: rgba(255,255,255,0.14);
-    padding: 5px 8px;
-    border-radius: 999px;
-    white-space: nowrap;
+    font-weight: 700;
+    color: rgba(55, 45, 55, 0.85);
+    margin-bottom: 6px;
   }
 
   .prompt {
-    color: var(--text);
     font-size: 16px;
-    font-weight: 650;
-    line-height: 1.2;
-
-    /* UPDATED: smaller bottom padding to reduce height */
-    padding: 6px 4px 6px;
+    font-weight: 600;
+    line-height: 1.25;
+    color: rgba(55, 45, 55, 0.95);
+    max-width: 520px;
+    margin-bottom: 8px;
   }
 
   .controls {
     display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-    padding: 0 2px;
+    gap: 8px;
   }
 
   button {
     border-radius: 999px;
-    padding: 7px 10px;
-    border: 1px solid var(--btnborder);
-    background: var(--btnbg);
-    color: var(--text);
+    padding: 7px 12px;
+
+    border: 1px solid rgba(200, 200, 200, 0.4);
+    background: rgba(255, 255, 255, 0.34);
+
     font-size: 12px;
-    font-weight: 750;
+    font-weight: 700;
     cursor: pointer;
+    color: rgba(55, 45, 55, 0.9);
+
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
-    line-height: 1;
   }
 
-  button:hover { filter: brightness(1.05); }
-  button:active { transform: translateY(1px); }
+  button:hover {
+    filter: brightness(1.05);
+  }
 
-  .ghost { background: rgba(255,255,255,0.20); }
+  button:active {
+    transform: translateY(1px);
+  }
 </style>
 </head>
 
 <body>
   <div class="wrap">
     <div class="card" role="application" aria-label="Icebreaker generator">
-      <div class="top">
-        <div class="title">Icebreaker generator</div>
-        <div class="tag" id="tag">mode: fun</div>
-      </div>
+      <div class="title">Icebreaker generator</div>
 
-      <div class="prompt" id="prompt">Loading…</div>
+      <div class="prompt" id="prompt">
+        Loading…
+      </div>
 
       <div class="controls">
         <button id="new" type="button">New</button>
-
-        <button class="ghost" type="button" data-mode="fun">Fun</button>
-        <button class="ghost" type="button" data-mode="light">Light</button>
-        <button class="ghost" type="button" data-mode="work">Work</button>
-        <button class="ghost" type="button" data-mode="deep">Deep</button>
-        <button class="ghost" type="button" data-mode="spicy">Spicy</button>
-
-        <button id="copy" type="button" title="Copy prompt">Copy</button>
+        <button id="copy" type="button">Copy</button>
       </div>
     </div>
   </div>
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  const qs = new URLSearchParams(location.search);
-  const theme = (qs.get("theme") || "pink").toLowerCase();
-  const startMode = (qs.get("mode") || "fun").toLowerCase();
+  const PROMPTS = [
+    "What’s a simple pleasure you’ll never outgrow?",
+    "What’s a tiny thing that instantly improves your day?",
+    "If today had a theme song, what would it be?",
+    "What are you working on right now?",
+    "What’s something you’re learning lately?",
+    "What’s a habit that’s helped you recently?",
+    "What’s your favourite way to reset when you feel overwhelmed?",
+    "What kind of environment helps you feel most creative?",
+    "What’s one small win you’ve had recently?",
+    "What’s a tool or app you genuinely enjoy using?",
+    "What’s a belief about work you’re currently rethinking?",
+    "What’s something people often overcomplicate?",
+    "What’s a risk you’re glad you took?",
+    "If you had more uninterrupted time, what would you use it for?",
+    "What’s a trend you think is misunderstood?"
+  ];
 
-  const themes = {
-    pink: {
-      bg: "rgba(255, 235, 240, 0.22)",
-      border: "rgba(255, 255, 255, 0.42)",
-      btnbg: "rgba(255, 255, 255, 0.34)",
-      btnborder: "rgba(200, 200, 200, 0.40)",
-      text: "rgba(55, 45, 55, 0.92)",
-      subtext: "rgba(55, 45, 55, 0.70)",
-      shadow: "rgba(0,0,0,0.14)"
-    },
-    green: {
-      bg: "rgba(140, 175, 155, 0.20)",
-      border: "rgba(200, 230, 215, 0.38)",
-      btnbg: "rgba(255, 255, 255, 0.18)",
-      btnborder: "rgba(200, 230, 215, 0.26)",
-      text: "rgba(245, 250, 248, 0.94)",
-      subtext: "rgba(245, 250, 248, 0.72)",
-      shadow: "rgba(0,0,0,0.18)"
-    },
-    white: {
-      bg: "rgba(255, 255, 255, 0.18)",
-      border: "rgba(255, 255, 255, 0.38)",
-      btnbg: "rgba(255, 255, 255, 0.26)",
-      btnborder: "rgba(220, 220, 220, 0.38)",
-      text: "rgba(40, 40, 45, 0.92)",
-      subtext: "rgba(40, 40, 45, 0.70)",
-      shadow: "rgba(0,0,0,0.12)"
-    }
-  };
-
-  const t = themes[theme] || themes.pink;
-  const root = document.documentElement.style;
-  root.setProperty("--bg", t.bg);
-  root.setProperty("--border", t.border);
-  root.setProperty("--btnbg", t.btnbg);
-  root.setProperty("--btnborder", t.btnborder);
-  root.setProperty("--text", t.text);
-  root.setProperty("--subtext", t.subtext);
-  root.setProperty("--shadow", t.shadow);
-
-  // Prompts reviewed for clarity + tone
-  const PROMPTS = {
-    fun: [
-      "What’s a tiny thing that instantly improves your day?",
-      "If today had a theme song, what would it be?",
-      "What’s your current obsession (show, food, hobby, anything)?",
-      "What’s a harmless opinion you’ll defend forever?",
-      "What’s a simple pleasure you’ll never outgrow?"
-    ],
-    light: [
-      "What are you working on right now (and what’s one small win)?",
-      "What’s something you’re learning lately?",
-      "Morning person or night owl — and what works for you?",
-      "What’s your favourite way to reset when you feel overwhelmed?",
-      "What’s one habit that’s helped you recently?"
-    ],
-    work: [
-      "What are you building right now, and who is it for?",
-      "What’s your biggest bottleneck this week?",
-      "What’s one tool or workflow you genuinely love?",
-      "What would make today’s session a success?",
-      "If you could automate one task in your business, what would it be?"
-    ],
-    deep: [
-      "What’s something you’re proud of that you don’t share often?",
-      "What belief about success are you currently letting go of?",
-      "What kind of environment helps you feel most creative?",
-      "What’s a risk you’re glad you took?",
-      "What do you want more of this year?"
-    ],
-    spicy: [
-      "What’s your most controversial productivity take?",
-      "What’s a common online-business tip you disagree with?",
-      "What’s something people overcomplicate that’s actually simple?",
-      "If you had to keep only one social app, which stays?",
-      "What’s a trend you think is overrated (or misunderstood)?"
-    ]
-  };
-
-  let mode = PROMPTS[startMode] ? startMode : "fun";
-
-  const tagEl = document.getElementById("tag");
   const promptEl = document.getElementById("prompt");
+  const newBtn = document.getElementById("new");
+  const copyBtn = document.getElementById("copy");
 
-  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-
-  function setPrompt() {
-    tagEl.textContent = `mode: ${mode}`;
-    promptEl.textContent = pick(PROMPTS[mode]);
+  function pickPrompt() {
+    const next = PROMPTS[Math.floor(Math.random() * PROMPTS.length)];
+    promptEl.textContent = next;
   }
 
-  document.getElementById("new").addEventListener("click", setPrompt);
+  newBtn.addEventListener("click", pickPrompt);
 
-  document.querySelectorAll("button[data-mode]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      mode = btn.getAttribute("data-mode");
-      setPrompt();
-    });
-  });
-
-  document.getElementById("copy").addEventListener("click", async () => {
+  copyBtn.addEventListener("click", async () => {
     const text = promptEl.textContent.trim();
     try {
       await navigator.clipboard.writeText(text);
-      tagEl.textContent = `copied ✓  mode: ${mode}`;
-      setTimeout(() => tagEl.textContent = `mode: ${mode}`, 900);
+      copyBtn.textContent = "Copied ✓";
+      setTimeout(() => copyBtn.textContent = "Copy", 900);
     } catch {
       const ta = document.createElement("textarea");
       ta.value = text;
@@ -251,12 +148,12 @@ document.addEventListener("DOMContentLoaded", () => {
       ta.select();
       document.execCommand("copy");
       ta.remove();
-      tagEl.textContent = `copied ✓  mode: ${mode}`;
-      setTimeout(() => tagEl.textContent = `mode: ${mode}`, 900);
+      copyBtn.textContent = "Copied ✓";
+      setTimeout(() => copyBtn.textContent = "Copy", 900);
     }
   });
 
-  setPrompt();
+  pickPrompt();
 });
 </script>
 </body>
