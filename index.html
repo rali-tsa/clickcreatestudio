@@ -3,124 +3,429 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Focus</title>
+<title>Pomodoro</title>
 
 <style>
-  /* absolute transparency, no defaults */
   html, body {
     margin: 0;
     padding: 0;
     background: transparent !important;
-  }
-
-  body {
-    display: inline-flex;
-  }
-
-  /* minimal glass pill */
-  .pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-
-    padding: 6px 8px;
-    border-radius: 999px;
-
-    background: rgba(70, 120, 100, 0.22);
-    border: 1px solid rgba(180, 220, 200, 0.28);
-
-    backdrop-filter: blur(12px) saturate(120%);
-    -webkit-backdrop-filter: blur(12px) saturate(120%);
-
-    box-shadow:
-      0 6px 16px rgba(0,0,0,0.25),
-      inset 0 1px 0 rgba(255,255,255,0.16);
-
     font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   }
 
-  .time {
-    font-size: 18px;
-    font-weight: 600;
-    letter-spacing: -0.3px;
-    color: rgba(255,255,255,0.95);
+  /* No 100vh so it can be embedded small */
+  .wrap {
+    width: 100%;
+    padding: 10px;
+    box-sizing: border-box;
+    display: grid;
+    place-items: center;
+  }
+
+  .card {
+    /* small square-ish widget */
+    width: min(320px, 100%);
+    border-radius: 18px;
+    padding: 14px;
+
+    background: rgba(120, 155, 135, 0.22);
+    border: 1px solid rgba(160, 200, 180, 0.35);
+
+    backdrop-filter: blur(14px) saturate(120%);
+    -webkit-backdrop-filter: blur(14px) saturate(120%);
+
+    box-shadow:
+      0 10px 26px rgba(0,0,0,0.18),
+      inset 0 1px 0 rgba(255,255,255,0.15);
+
+    container-type: inline-size;
+    container-name: pomo;
+  }
+
+  .top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .title {
+    font-size: 13px;
+    font-weight: 750;
+    letter-spacing: 0.2px;
+    color: rgba(255,255,255,0.92);
+    opacity: 0.95;
+  }
+
+  .mute {
+    border-radius: 999px;
+    border: 1px solid rgba(180,220,200,0.35);
+    background: rgba(80,120,100,0.25);
+    color: rgba(255,255,255,0.92);
+    padding: 8px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
     line-height: 1;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    white-space: nowrap;
+  }
+
+  .time {
+    text-align: center;
+    font-weight: 750;
+    letter-spacing: -1px;
+    margin: 6px 0 12px;
+    font-size: clamp(40px, 18cqi, 58px);
+    color: rgba(255,255,255,0.95);
+    text-shadow: 0 2px 10px rgba(0,0,0,0.28);
     user-select: none;
   }
 
-  button {
-    appearance: none;
-    border: 0;
-    background: none;
-    padding: 0 4px;
-    font-size: 13px;
-    font-weight: 600;
-    color: rgba(255,255,255,0.9);
-    cursor: pointer;
-    line-height: 1;
+  .sub {
+    text-align: center;
+    font-size: 12px;
+    color: rgba(255,255,255,0.78);
+    margin-top: -8px;
+    margin-bottom: 12px;
   }
 
-  button:active {
-    transform: translateY(1px);
+  .rows {
+    display: grid;
+    gap: 10px;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: center;
+
+    padding: 10px 10px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(0,0,0,0.10);
+  }
+
+  .row-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .label {
+    font-size: 13px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.9);
+    white-space: nowrap;
+  }
+
+  .mins {
+    font-size: 13px;
+    font-weight: 800;
+    color: rgba(255,255,255,0.92);
+    opacity: 0.95;
+    white-space: nowrap;
+  }
+
+  .stepper {
+    display: inline-flex;
+    gap: 6px;
+    margin-left: auto;
+  }
+
+  button.btn, button.step {
+    border-radius: 999px;
+    border: 1px solid rgba(180,220,200,0.35);
+    background: rgba(80,120,100,0.25);
+    color: rgba(255,255,255,0.92);
+
+    padding: 8px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    line-height: 1;
+
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    white-space: nowrap;
+  }
+
+  button.step {
+    padding: 8px 10px;
+    min-width: 36px;
+    text-align: center;
+  }
+
+  button:active { transform: translateY(1px); }
+
+  .btn {
+    min-width: 108px;
+    text-align: center;
+  }
+
+  /* very small embeds: simplify spacing */
+  @container pomo (max-width: 280px) {
+    .card { padding: 12px; }
+    .btn { min-width: 96px; }
+    .label { display: none; } /* keep it readable */
+    .row { grid-template-columns: 1fr; }
+    .row-left { justify-content: space-between; }
   }
 </style>
 </head>
 
 <body>
-  <div class="pill">
-    <div class="time" id="time">25:00</div>
-    <button id="toggle">▶</button>
-    <button id="reset">↺</button>
+  <div class="wrap">
+    <div class="card" role="application" aria-label="Pomodoro timer">
+      <div class="top">
+        <div class="title">Pomodoro</div>
+        <button class="mute" id="muteBtn" aria-pressed="false" title="Toggle bell sound">🔔 On</button>
+      </div>
+
+      <div class="time" id="time">25:00</div>
+      <div class="sub" id="modeLabel">Ready: focus</div>
+
+      <div class="rows">
+        <!-- Focus row -->
+        <div class="row">
+          <div class="row-left">
+            <div class="label">Focus</div>
+            <div class="mins"><span id="focusMins">25</span> min</div>
+
+            <div class="stepper" aria-label="Adjust focus minutes">
+              <button class="step" id="focusDown" type="button">−</button>
+              <button class="step" id="focusUp" type="button">+</button>
+            </div>
+          </div>
+
+          <button class="btn" id="focusBtn" type="button">Start focus</button>
+        </div>
+
+        <!-- Break row -->
+        <div class="row">
+          <div class="row-left">
+            <div class="label">Break</div>
+            <div class="mins"><span id="breakMins">5</span> min</div>
+
+            <div class="stepper" aria-label="Adjust break minutes">
+              <button class="step" id="breakDown" type="button">−</button>
+              <button class="step" id="breakUp" type="button">+</button>
+            </div>
+          </div>
+
+          <button class="btn" id="breakBtn" type="button">Start break</button>
+        </div>
+      </div>
+    </div>
   </div>
 
 <script>
+  // ---- params
   const qs = new URLSearchParams(location.search);
-  const minutes = parseInt(qs.get("minutes") || "25", 10);
+  const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 
-  let remaining = minutes * 60;
+  let focusMinutes = clamp(parseInt(qs.get("minutes") || "25", 10) || 25, 1, 180);
+  let breakMinutes = clamp(parseInt(qs.get("break") || "5", 10) || 5, 1, 60);
+
+  // ---- state
+  let mode = "focus"; // "focus" | "break"
+  let remaining = focusMinutes * 60;
   let running = false;
-  let timer = null;
+  let intervalId = null;
 
+  // bell on by default
+  let bellOn = (qs.get("sound") === "0") ? false : true;
+
+  // ---- elements
   const timeEl = document.getElementById("time");
-  const toggleBtn = document.getElementById("toggle");
+  const modeLabel = document.getElementById("modeLabel");
 
-  function format(sec) {
+  const focusMinsEl = document.getElementById("focusMins");
+  const breakMinsEl = document.getElementById("breakMins");
+
+  const focusBtn = document.getElementById("focusBtn");
+  const breakBtn = document.getElementById("breakBtn");
+
+  const focusDown = document.getElementById("focusDown");
+  const focusUp = document.getElementById("focusUp");
+  const breakDown = document.getElementById("breakDown");
+  const breakUp = document.getElementById("breakUp");
+
+  const muteBtn = document.getElementById("muteBtn");
+
+  // ---- formatting
+  const fmt = (sec) => {
     const m = Math.floor(sec / 60);
     const s = sec % 60;
     return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+  };
+
+  // ---- bell (Web Audio)
+  let audioCtx = null;
+  async function playBell() {
+    if (!bellOn) return;
+
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === "suspended") await audioCtx.resume();
+
+      // a gentle 2-tone chime
+      const now = audioCtx.currentTime;
+
+      const makeTone = (freq, t0, dur) => {
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.type = "sine";
+        o.frequency.value = freq;
+
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.exponentialRampToValueAtTime(0.04, t0 + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+
+        o.connect(g);
+        g.connect(audioCtx.destination);
+        o.start(t0);
+        o.stop(t0 + dur + 0.02);
+      };
+
+      makeTone(880, now, 0.28);
+      makeTone(660, now + 0.18, 0.34);
+    } catch {
+      // fail silently
+    }
+  }
+
+  // ---- timer control
+  function stopTimer() {
+    running = false;
+    if (intervalId) clearInterval(intervalId);
+    intervalId = null;
+    updateButtons();
+  }
+
+  function startMode(nextMode) {
+    mode = nextMode;
+    remaining = (mode === "focus" ? focusMinutes : breakMinutes) * 60;
+
+    // stop any existing timer then start
+    stopTimer();
+    running = true;
+
+    intervalId = setInterval(async () => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        remaining = 0;
+        render();
+        stopTimer();
+        await playBell();
+        modeLabel.textContent = (mode === "focus") ? "Focus complete" : "Break complete";
+        updateButtons();
+        return;
+      }
+      render();
+    }, 1000);
+
+    render();
+    updateButtons();
+  }
+
+  function toggleCurrent(modeToToggle) {
+    // If currently running that mode -> stop. Else start that mode.
+    if (running && mode === modeToToggle) {
+      stopTimer();
+      modeLabel.textContent = `Paused: ${mode}`;
+      render();
+      return;
+    }
+    startMode(modeToToggle);
+  }
+
+  // ---- UI
+  function updateButtons() {
+    const focusRunning = running && mode === "focus";
+    const breakRunning = running && mode === "break";
+
+    focusBtn.textContent = focusRunning ? "Stop focus" : "Start focus";
+    breakBtn.textContent = breakRunning ? "Stop break" : "Start break";
+
+    // keep label helpful
+    if (!running) {
+      // don't overwrite complete messages
+      if (!modeLabel.textContent.includes("complete")) {
+        modeLabel.textContent = `Ready: ${mode}`;
+      }
+    } else {
+      modeLabel.textContent = `Running: ${mode}`;
+    }
   }
 
   function render() {
-    timeEl.textContent = format(remaining);
-    toggleBtn.textContent = running ? "❚❚" : "▶";
+    timeEl.textContent = fmt(remaining);
+    focusMinsEl.textContent = String(focusMinutes);
+    breakMinsEl.textContent = String(breakMinutes);
+    muteBtn.textContent = bellOn ? "🔔 On" : "🔕 Off";
+    muteBtn.setAttribute("aria-pressed", bellOn ? "false" : "true");
   }
 
-  function stop() {
-    clearInterval(timer);
-    running = false;
-  }
-
-  toggleBtn.onclick = () => {
-    if (running) {
-      stop();
+  // ---- minute steppers
+  function adjust(which, delta) {
+    if (which === "focus") {
+      focusMinutes = clamp(focusMinutes + delta, 1, 180);
+      if (!running || mode !== "focus") {
+        mode = "focus";
+        remaining = focusMinutes * 60;
+      }
     } else {
-      running = true;
-      timer = setInterval(() => {
-        remaining--;
-        if (remaining <= 0) stop();
-        render();
-      }, 1000);
+      breakMinutes = clamp(breakMinutes + delta, 1, 60);
+      if (!running || mode !== "break") {
+        // do not force switch if focus is running
+        if (!running) {
+          mode = "break";
+          remaining = breakMinutes * 60;
+        }
+      }
+    }
+    // if adjusting the currently running mode, keep remaining in sync
+    if (running && mode === "focus") remaining = focusMinutes * 60;
+    if (running && mode === "break") remaining = breakMinutes * 60;
+
+    stopTimer(); // adjustment implies reset for simplicity
+    modeLabel.textContent = `Ready: ${mode}`;
+    render();
+    updateButtons();
+  }
+
+  // ---- events
+  focusBtn.addEventListener("click", () => toggleCurrent("focus"));
+  breakBtn.addEventListener("click", () => toggleCurrent("break"));
+
+  focusDown.addEventListener("click", () => adjust("focus", -1));
+  focusUp.addEventListener("click", () => adjust("focus", +1));
+  breakDown.addEventListener("click", () => adjust("break", -1));
+  breakUp.addEventListener("click", () => adjust("break", +1));
+
+  muteBtn.addEventListener("click", async () => {
+    bellOn = !bellOn;
+    // user gesture unlocks audio context for later bell
+    if (bellOn) {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === "suspended") await audioCtx.resume();
+      } catch {}
     }
     render();
-  };
+  });
 
-  document.getElementById("reset").onclick = () => {
-    stop();
-    remaining = minutes * 60;
-    render();
-  };
-
+  // ---- init
+  mode = "focus";
+  remaining = focusMinutes * 60;
   render();
+  updateButtons();
 </script>
 </body>
 </html>
+
