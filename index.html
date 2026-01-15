@@ -6,13 +6,22 @@
 <title>Pomodoro</title>
 
 <style>
-  :root { color-scheme: dark; }
+  /* IMPORTANT: do NOT force dark color-scheme; it can paint transparency black */
+  :root {
+    color-scheme: light;
+  }
 
   html, body {
     margin: 0;
     padding: 0;
+    background-color: transparent !important;
     background: transparent !important;
     font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  }
+
+  /* Ensure the page doesn't "fill" with any default color */
+  body {
+    display: block;
   }
 
   .wrap {
@@ -21,6 +30,7 @@
     box-sizing: border-box;
     display: grid;
     place-items: center;
+    background: transparent !important;
   }
 
   .card {
@@ -28,6 +38,7 @@
     border-radius: 18px;
     padding: 14px;
 
+    /* green glass */
     background: rgba(120, 155, 135, 0.22);
     border: 1px solid rgba(160, 200, 180, 0.35);
 
@@ -54,15 +65,15 @@
     font-size: 13px;
     font-weight: 750;
     letter-spacing: 0.2px;
-    color: rgba(255,255,255,0.92);
+    color: rgba(25, 35, 30, 0.92);
     opacity: 0.95;
   }
 
   .mute {
     border-radius: 999px;
-    border: 1px solid rgba(180,220,200,0.35);
-    background: rgba(80,120,100,0.25);
-    color: rgba(255,255,255,0.92);
+    border: 1px solid rgba(90, 120, 105, 0.35);
+    background: rgba(255,255,255,0.18);
+    color: rgba(25, 35, 30, 0.92);
     padding: 8px 10px;
     font-size: 12px;
     font-weight: 700;
@@ -79,15 +90,15 @@
     letter-spacing: -1px;
     margin: 6px 0 12px;
     font-size: clamp(40px, 18cqi, 58px);
-    color: rgba(255,255,255,0.95);
-    text-shadow: 0 2px 10px rgba(0,0,0,0.28);
+    color: rgba(20, 28, 24, 0.92);
+    text-shadow: 0 2px 10px rgba(255,255,255,0.10);
     user-select: none;
   }
 
   .sub {
     text-align: center;
     font-size: 12px;
-    color: rgba(255,255,255,0.78);
+    color: rgba(20, 28, 24, 0.70);
     margin-top: -8px;
     margin-bottom: 12px;
   }
@@ -105,8 +116,8 @@
 
     padding: 10px 10px;
     border-radius: 14px;
-    border: 1px solid rgba(255,255,255,0.14);
-    background: rgba(0,0,0,0.10);
+    border: 1px solid rgba(40, 60, 50, 0.12);
+    background: rgba(255,255,255,0.10);
   }
 
   .row-left {
@@ -119,14 +130,14 @@
   .label {
     font-size: 13px;
     font-weight: 700;
-    color: rgba(255,255,255,0.9);
+    color: rgba(20, 28, 24, 0.82);
     white-space: nowrap;
   }
 
   .mins {
     font-size: 13px;
     font-weight: 800;
-    color: rgba(255,255,255,0.92);
+    color: rgba(20, 28, 24, 0.86);
     opacity: 0.95;
     white-space: nowrap;
   }
@@ -139,9 +150,9 @@
 
   button.btn, button.step {
     border-radius: 999px;
-    border: 1px solid rgba(180,220,200,0.35);
-    background: rgba(80,120,100,0.25);
-    color: rgba(255,255,255,0.92);
+    border: 1px solid rgba(90, 120, 105, 0.35);
+    background: rgba(255,255,255,0.18);
+    color: rgba(20, 28, 24, 0.90);
 
     padding: 8px 10px;
     font-size: 12px;
@@ -155,7 +166,6 @@
   }
 
   button.step {
-    padding: 8px 10px;
     min-width: 34px;
     text-align: center;
   }
@@ -211,7 +221,6 @@
     font-size: 11px;
   }
 
-  /* ultra-narrow embeds: hide labels */
   @container pomo (max-width: 280px) {
     .label { display: none; }
   }
@@ -230,7 +239,6 @@
       <div class="sub" id="modeLabel">Ready: focus</div>
 
       <div class="rows">
-        <!-- Focus row -->
         <div class="row">
           <div class="row-left">
             <div class="label">Focus</div>
@@ -245,7 +253,6 @@
           <button class="btn" id="focusBtn" type="button">Start focus</button>
         </div>
 
-        <!-- Break row -->
         <div class="row">
           <div class="row-left">
             <div class="label">Break</div>
@@ -265,8 +272,6 @@
 
 <script>
   const qs = new URLSearchParams(location.search);
-
-  // Enable small mode via ?small=1
   if (qs.get("small") === "1") document.body.dataset.small = "1";
 
   const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
@@ -274,20 +279,20 @@
   let focusMinutes = clamp(parseInt(qs.get("minutes") || "25", 10) || 25, 1, 180);
   let breakMinutes = clamp(parseInt(qs.get("break") || "5", 10) || 5, 1, 60);
 
-  // State
-  let mode = "focus"; // "focus" | "break"
+  // state
+  let mode = "focus";         // "focus" | "break"
   let running = false;
   let intervalId = null;
 
-  // Remaining is always derived from endAt when running
+  // timestamp-based (doesn't pause in background)
   let remaining = focusMinutes * 60;
-  let endAt = null;        // timestamp (ms) when current run ends
-  let durationSec = 0;     // duration of current run in seconds
+  let endAt = null;           // ms timestamp
+  let durationSec = 0;
 
-  // Bell on by default (sound=0 turns it off)
+  // sound
   let bellOn = (qs.get("sound") === "0") ? false : true;
 
-  // Elements
+  // elements
   const timeEl = document.getElementById("time");
   const modeLabel = document.getElementById("modeLabel");
 
@@ -310,7 +315,7 @@
     return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
   };
 
-  // Web Audio bell (2-tone chime)
+  // Bell (Web Audio)
   let audioCtx = null;
   async function playBell() {
     if (!bellOn) return;
@@ -353,8 +358,10 @@
   function render() {
     remaining = computeRemaining();
     timeEl.textContent = fmt(remaining);
+
     focusMinsEl.textContent = String(focusMinutes);
     breakMinsEl.textContent = String(breakMinutes);
+
     muteBtn.textContent = bellOn ? "🔔 On" : "🔕 Off";
     muteBtn.setAttribute("aria-pressed", bellOn ? "false" : "true");
   }
@@ -382,7 +389,6 @@
     if (intervalId) clearInterval(intervalId);
     intervalId = null;
 
-    // sync remaining before clearing endAt
     remaining = computeRemaining();
     endAt = null;
     durationSec = 0;
@@ -397,7 +403,6 @@
     durationSec = (mode === "focus" ? focusMinutes : breakMinutes) * 60;
     endAt = Date.now() + durationSec * 1000;
 
-    // restart interval
     if (intervalId) clearInterval(intervalId);
     running = true;
 
@@ -420,12 +425,9 @@
       }
     };
 
-    // immediate render + start ticking
     render();
     updateButtons();
     tick();
-
-    // tick faster for smoother UI, but accuracy comes from Date.now()
     intervalId = setInterval(tick, 250);
   }
 
@@ -453,14 +455,13 @@
       }
     }
 
-    // adjustments reset the timer for simplicity + predictability
     stopTimer();
     if (modeLabel) modeLabel.textContent = `Ready: ${mode}`;
     render();
     updateButtons();
   }
 
-  // Events
+  // events
   focusBtn.addEventListener("click", () => toggleCurrent("focus"));
   breakBtn.addEventListener("click", () => toggleCurrent("break"));
 
@@ -480,13 +481,12 @@
     render();
   });
 
-  // Init
+  // init
   mode = "focus";
   remaining = focusMinutes * 60;
   render();
   updateButtons();
 
-  // Keep the display correct when returning to the tab
   document.addEventListener("visibilitychange", () => {
     if (running) render();
   });
